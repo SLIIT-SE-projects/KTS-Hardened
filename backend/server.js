@@ -15,8 +15,27 @@ const ticketRoutes = require("./routes/ticketRoutes");
 const morgan = require("morgan");
 const app = express();
 
+// Parse trusted origins from environment variable
+const originsString = process.env.TRUSTED_ORIGINS;
+const trustedOrigins = originsString ? originsString.split(',') : [];
+
+console.log('trustedOrigins :>> ', trustedOrigins);
+
+// Configure CORS
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    // or any request from a trusted origin
+    if (!origin || trustedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+};
+
 //middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(morgan("dev"));
 
