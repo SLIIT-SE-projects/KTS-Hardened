@@ -6,6 +6,9 @@ const Token = require("../models/tokenModel");
 const crypto = require("crypto");
 const sendEmail = require("../util/sendEmail");
 
+//  Google auth request
+const {OAuth2Client} = require('google-auth-library');
+
 //generate token
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "1d" });
@@ -264,6 +267,31 @@ const resetPassword = asyncHandler(async (req, res) => {
   res.status(200).json({ message: "Password reset successful,Please login" });
 });
 
+
+const googleAuthRequest=asyncHandler(async(req,res)=>{
+  const redirectURL = `${process.env.BACKEND_URL}/api/auth/googleLoginValidate`;
+  console.log('redirectURL :>> ', redirectURL);
+  console.log('process.env.CLIENT_ID :>> ', process.env.CLIENT_ID);
+  console.log('process.env.CLIENT_SECRET :>> ', process.env.CLIENT_SECRET);
+  
+  const oAuth2Client = new OAuth2Client(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    redirectURL
+    );
+
+    // Generate the url that will be used for the consent dialog.
+    const authorizeUrl = oAuth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: 'https://www.googleapis.com/auth/userinfo.email  openid profile',
+      prompt: 'consent'
+    });
+    const urlObj = new URL(authorizeUrl);
+    console.log('client_id param:', urlObj.searchParams.get('client_id'));
+
+    res.json({url:authorizeUrl})
+})
+
 module.exports = {
   getAllUsers,
   userLogin,
@@ -272,4 +300,5 @@ module.exports = {
   changePassword,
   forgotPassword,
   resetPassword,
+  googleAuthRequest
 };
