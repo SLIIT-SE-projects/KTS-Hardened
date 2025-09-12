@@ -292,6 +292,154 @@ const googleAuthRequest=asyncHandler(async(req,res)=>{
     res.json({url:authorizeUrl})
 })
 
+// validate google account
+const googleAuthValidate=asyncHandler(async(req,res)=>{
+
+  try {
+    const code = req.query.code;
+    if(!code){
+      throw new Error('Code is not available');
+    }
+
+    const redirectURL = `${process.env.BACKEND_URL}/api/auth/googleLoginValidate`;
+
+    const oAuth2Client = new OAuth2Client(
+      process.env.CLIENT_ID,
+      process.env.CLIENT_SECRET,
+      redirectURL
+    );
+
+    // Exchange the authorization code for access tokens
+    const { tokens } = await oAuth2Client.getToken(code);
+    // console.log(tokens);
+    oAuth2Client.setCredentials(tokens);
+
+    // Get user profile information
+    const ticket = await oAuth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    const email = payload.email;
+    const fullName =
+        payload?.name ||
+        [payload?.given_name, payload?.family_name].filter(Boolean).join(" ") ||
+        (email ? email.split("@")[0] : "GoogleUser");
+    const photo = payload?.picture || "";
+    // console.log(email);
+
+    let user = await User.findOne({ email });
+
+    if (!user) {
+      const makeShortName = (name) => {
+        if (!name) return "GG";
+        return name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .slice(0, 4)
+          .toUpperCase();
+      };
+
+      // sId generation (D/BCS/YY/XXXX)
+      const faculty = "D";
+      const dept = "BCS";
+      const yearTwoDigits = new Date().getFullYear().toString().slice(-2);
+      const sIdPrefix = `${faculty}/${dept}/${yearTwoDigits}/`;
+      const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const prefixRegex = `^${escapeRegex(sIdPrefix)}`;
+
+      let seqNum = 0;
+      let generatedSId;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const existingCount = await User.countDocuments({ sId: { $regex: prefixRegex } });
+        seqNum = existingCount + 1 + attempt;
+        const seqStr = String(seqNum).padStart(4, "0");
+        generatedSId = `${sIdPrefix}${seqStr}`;
+        const exists = await User.exists({ sId: generatedSId });
+        if (!exists) break;
+      }
+
+      const generatedShortName = makeShortName(fullName);
+      const defaultDepartment = dept;
+      const defaultYear = yearTwoDigits;
+      const defaultDOB = new Date("1970-01-01");
+      const defaultDateOfEntry = Date.now();
+      const defaultType = "student"; // must be 'student' or 'lecture'
+      const defaultPhoto = photo || "https://res.cloudinary.com/dnoobzfxo/image/upload/v1717409638/istockphoto-1475805651-612x612_yhdgye.jpg";
+      const generatedMobile = `+000${Date.now().toString().slice(-7)}`;
+
+      // random password for schema: hash it
+      const randomPassword = crypto.randomBytes(16).toString("hex");
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      const newUserData = {
+        sId: generatedSId,
+        fullName,
+        email,
+        photo: defaultPhoto,
+        password: hashedPassword,
+        mobileNo: generatedMobile,
+        dob: defaultDOB,
+        address: "Not provided",
+        year: defaultYear,
+        dateOfEntry: defaultDateOfEntry,
+        type: defaultType,
+        department: defaultDepartment,
+        shortName: generatedShortName,
+      };
+
+      user = await User.create(newUserData);
+    }
+
+    const jwtToken = generateToken(user._id);
+    const redirectBase = `${process.env.FRONTEND_URL}/login`;
+    const query = `?token=${encodeURIComponent(jwtToken)}`;
+    return res.redirect(redirectBase + query);
+
+  } catch(err) {
+    res.redirect(`${process.env.FRONTEND_URL}/login?error=`+err.message);
+  }
+})
+
+//sent the user data from the token to the frontend
+const getUserDataFromToken = asyncHandler(async (req, res) => {
+
+  const {token} = req.body
+
+  console.log(req.body);
+  if (!token) {
+    res.status(400);
+    throw new Error("Token is required");
+  }
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+  const user = await User.findById(decoded.id).select("-password");
+  if (!user) {
+    res.status(404);
+    throw new Error("User not found");
+  }
+  console.log(user);
+  res.status(200).json({
+    _id: user._id,
+    sId: user.sId,
+    fullName: user.fullName,
+    email: user.email,
+    mobileNo: user.mobileNo,
+    dob: user.dob,
+    address: user.address,
+    year: user.year,
+    type: user.type,
+    photo: user.photo,
+    department: user.department,
+    dateOfEntry: user.dateOfEntry,
+    shortName: user.shortName,
+    token,
+  });
+
+});
+
 module.exports = {
   getAllUsers,
   userLogin,
@@ -300,5 +448,7 @@ module.exports = {
   changePassword,
   forgotPassword,
   resetPassword,
-  googleAuthRequest
+  googleAuthRequest,
+  googleAuthValidate,
+  getUserDataFromToken
 };
