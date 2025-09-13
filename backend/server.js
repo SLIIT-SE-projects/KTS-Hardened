@@ -3,6 +3,7 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 dotenv.config();
 const connectDb = require("./config/db");
+const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const managerRoutes = require("./routes/managerRoutes");
 const employeeRoutes = require("./routes/employeeRoutes");
@@ -40,6 +41,7 @@ app.use(express.json({ limit: "50mb" }));
 app.use(morgan("dev"));
 
 //routes
+app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/managers", managerRoutes);
 app.use("/api/employees", employeeRoutes);
