@@ -6,6 +6,9 @@ import { useUserContext } from "../../hooks/useUserAuthContext";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import logo from './logo.png'
+import google_logo from './google_logo.webp'
+import { useEffect } from "react";
+
 const normalStyle =
   "w-full  h-[45px]  md:h-[50px] sm:h-[56px] pl-[20px] py-[7px] font-normal text-sm text-[#515151] focus:outline-none ";
 const errorStyle =
@@ -22,6 +25,64 @@ function Login() {
   const [passwordError, setPasswordError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const error = urlParams.get('error');
+
+    if (error) {
+      toast.error(error, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+      });
+      setError(error);
+    } else if (token) {
+      validateToken(token);
+    }
+  }, []);
+
+  const validateToken = async (token) => {
+    try {
+      console.log("token",token);
+      const res = await userAxios.post("/api/auth/getUserDataFromToken", { token });
+      if (res.status === 200) {
+        const now = new Date();
+        if (rememberMe) {
+          localStorage.setItem(
+            "user",
+            JSON.stringify({
+              ...res.data,
+              expiry: now.getTime() + 3600000 * 24,
+            })
+          );
+        }
+        dispatch({ type: "LOGIN", payload: res.data });
+        toast.dismiss();
+        navigate("/");
+      }
+    } catch (error) {
+      console.log(error);
+      console.error(error.response.data.message);
+      toast.error("Token validation failed", {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "colored",
+      });
+    }
+  };
+
 
   const login = async (e) => {
     e.preventDefault();
@@ -114,6 +175,35 @@ function Login() {
       }
     }
   };
+
+  const get_auth_req=async (e)=>{
+    setError('')
+    e.preventDefault();
+    let response;
+    try{
+    response =await userAxios.post('api/auth/googleLoginReq');
+    console.log(response);
+  
+    }catch(error){
+      console.log(error);
+      setError('Google Login Fail');
+    }
+
+    const data = response.data; 
+    try{
+    if(data.url){
+      console.log('data.url :>> ', data.url);
+      window.open(data.url, '_blank');
+    }
+    else{
+      throw new Error('Google Login Fail');
+    }
+    }catch(error){
+      console.log(error);
+      setError('Google Login Fail');
+    }
+  }
+
   return (
     <div className="flex h-screen w-full font-roboto justify-center">
       <div className="w-[90%] xsm:w-[80%] md:w-[60%] lg:w-[34%] flex items-center flex-col justify-center">
@@ -231,6 +321,23 @@ function Login() {
                 </div>
               </div>
             )}
+            {/* Login with Google */}
+            <div className="flex flex-col items-center mt-[15px] ">
+              <div className="w-[75%] relative">
+                <button
+                  onClick={get_auth_req}
+                  type="submit"
+                  className="w-full  text-white h-[45px]  xl:h-[50px] rounded-lg text-[16px] xl:text-[18px] font-medium bg-[#4286F5] border-[#4286F5] border-[1px]"
+                >          
+                    <div className="flex items-center justify-center ">   
+                    <img src={google_logo} alt="" className="w-[100spx] absolute top-[2px] left-[2px] bg-white xl:h-[46px]  h-[42px] rounded-lg"/>              
+                      <p className="pl-[10px]">Sign in with Google</p>                
+                    </div>
+             
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-col items-center mt-[15px]">
               <div className="w-[75%] ">
                 <button
