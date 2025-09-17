@@ -193,7 +193,7 @@ function Login() {
     try{
     if(data.url){
       console.log('data.url :>> ', data.url);
-      window.open(data.url, '_blank');
+      window.open(data.url, '_self');
     }
     else{
       throw new Error('Google Login Fail');
