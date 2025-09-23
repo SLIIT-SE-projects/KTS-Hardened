@@ -3,23 +3,16 @@ const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const { fileSizeFormatter } = require("../util/fileUpload");
-const { allow } = require("../util/rateGate");
+const { enforceGate } = require("../util/rateGate");
 
 //create bus
 const createBus = asyncHandler(async (req, res) => {
 
-  const key = req.user?.id ? `u:${req.user.id}` : `ip:${req.ip}`;
-  const decision = allow({
-    key,
+  if (!enforceGate(req, res, {
+    bucket: "bus:create",
     max: Number(process.env.RATE_CREATE_MAX || 20),
     windowMs: Number(process.env.RATE_WINDOW_MS || 15 * 60 * 1000),
-  });
-  if (!decision.allowed) {
-    res.set("RateLimit-Limit", String(process.env.RATE_CREATE_MAX || 20));
-    res.set("RateLimit-Remaining", String(decision.remaining));
-    res.set("RateLimit-Reset", Math.ceil(decision.resetAt / 1000).toString());
-    return res.status(429).json({ error: "Too many create requests. Please try again later." });
-  }
+  })) return;
 
   const personType = req.personType;
 
