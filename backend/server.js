@@ -11,7 +11,7 @@ const busRoutes = require("./routes/busRoutes");
 const roadRouteRoutes = require("./routes/roadRouteRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 const ticketRoutes = require("./routes/ticketRoutes");
-const defaultLimiter = require("./middleware/rateLimit");
+const { defaultLimiter } = require("./middleware/rateLimit");
 
 //middleware
 const morgan = require("morgan");
