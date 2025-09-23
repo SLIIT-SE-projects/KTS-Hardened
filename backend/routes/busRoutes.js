@@ -11,7 +11,7 @@ const router = express.Router();
 const { createAccountLimiter } = require("../middleware/rateLimit");
 
 //create bus ---manager
-router.post("/",createAccountLimiter, protect, upload.single("image"), createBus);
+router.post("/", protect, createAccountLimiter, upload.single("image"), createBus);
 //get all buses
 router.get("/", getAllBuses);
 //get a single bus

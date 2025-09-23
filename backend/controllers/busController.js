@@ -8,11 +8,15 @@ const { enforceGate } = require("../util/rateGate");
 //create bus
 const createBus = asyncHandler(async (req, res) => {
 
-  if (!enforceGate(req, res, {
-    bucket: "bus:create",
-    max: Number(process.env.RATE_CREATE_MAX || 20),
-    windowMs: Number(process.env.RATE_WINDOW_MS || 15 * 60 * 1000),
-  })) return;
+  if (
+    !enforceGate(req, res, {
+      bucket: "bus:create",
+      max: Number(process.env.RATE_CREATE_MAX || 20),
+      windowMs: Number(process.env.RATE_WINDOW_MS || 15 * 60 * 1000),
+    })
+  ) {
+    return; // 429 already sent
+  }
 
   const personType = req.personType;
 
