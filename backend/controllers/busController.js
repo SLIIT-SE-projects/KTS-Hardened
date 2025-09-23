@@ -4,19 +4,17 @@ const cloudinary = require("cloudinary").v2;
 const fs = require("fs");
 const { fileSizeFormatter } = require("../util/fileUpload");
 const { enforceGate } = require("../util/rateGate");
+const rateLimit = require("express-rate-limit");
+const createBusLimiter = rateLimit({
+  windowMs: Number(process.env.RATE_WINDOW_MS || 15 * 60 * 1000),
+  max: Number(process.env.RATE_CREATE_MAX || 20),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many create requests. Please try again later." },
+});
 
-//create bus
-const createBus = asyncHandler(async (req, res) => {
-
-  if (
-    !enforceGate(req, res, {
-      bucket: "bus:create",
-      max: Number(process.env.RATE_CREATE_MAX || 20),
-      windowMs: Number(process.env.RATE_WINDOW_MS || 15 * 60 * 1000),
-    })
-  ) {
-    return; // 429 already sent
-  }
+// create bus (impl)
+const createBusImpl = asyncHandler(async (req, res) => {
 
   const personType = req.personType;
 
@@ -153,7 +151,7 @@ const deleteBusById = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-  createBus,
+  createBus: [createBusLimiter, createBusImpl],
   getAllBuses,
   getBusById,
   deleteBusById,
