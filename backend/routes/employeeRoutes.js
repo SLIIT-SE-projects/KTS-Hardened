@@ -10,7 +10,7 @@ const {
 const protect = require("../middleware/authMiddleware");
 const { upload } = require("../util/fileUpload");
 const router = express.Router();
-const { createAccountLimiter } = require("../middleware/ratelimit");
+const { createAccountLimiter } = require("../middleware/rateLimit");
 
 //create employee  -- manager
 router.post("/", protect,createAccountLimiter, upload.single("image"), createEmployee);

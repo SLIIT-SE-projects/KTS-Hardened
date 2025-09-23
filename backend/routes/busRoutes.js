@@ -8,7 +8,7 @@ const {
 } = require("../controllers/busController");
 const { upload } = require("../util/fileUpload");
 const router = express.Router();
-const { createAccountLimiter } = require("../middleware/ratelimit");
+const { createAccountLimiter } = require("../middleware/rateLimit");
 
 //create bus ---manager
 router.post("/",createAccountLimiter, protect, upload.single("image"), createBus);

@@ -11,6 +11,7 @@ const busRoutes = require("./routes/busRoutes");
 const roadRouteRoutes = require("./routes/roadRouteRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 const ticketRoutes = require("./routes/ticketRoutes");
+const defaultLimiter = require("./middleware/rateLimit");
 
 //middleware
 const morgan = require("morgan");
@@ -39,6 +40,10 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json({ limit: "50mb" }));
 app.use(morgan("dev"));
+
+// --- Rate limiting ---
+// Global default for all routes
+app.use(defaultLimiter);
 
 //routes
 app.use("/api/auth", authRoutes);
