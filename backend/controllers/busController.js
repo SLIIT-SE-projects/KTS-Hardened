@@ -5,7 +5,10 @@ const fs = require("fs");
 const { fileSizeFormatter } = require("../util/fileUpload");
 const { allow } = require("../util/rateGate");
 
-const key = req.user?.id ? `u:${req.user.id}` : `ip:${req.ip}`;
+//create bus
+const createBus = asyncHandler(async (req, res) => {
+
+  const key = req.user?.id ? `u:${req.user.id}` : `ip:${req.ip}`;
   const decision = allow({
     key,
     max: Number(process.env.RATE_CREATE_MAX || 20),
@@ -18,8 +21,6 @@ const key = req.user?.id ? `u:${req.user.id}` : `ip:${req.ip}`;
     return res.status(429).json({ error: "Too many create requests. Please try again later." });
   }
 
-//create bus
-const createBus = asyncHandler(async (req, res) => {
   const personType = req.personType;
 
   if (personType === "user") {
