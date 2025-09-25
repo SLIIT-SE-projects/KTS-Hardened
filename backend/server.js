@@ -12,10 +12,14 @@ const roadRouteRoutes = require("./routes/roadRouteRoutes");
 const errorHandler = require("./middleware/errorMiddleware");
 const ticketRoutes = require("./routes/ticketRoutes");
 const { defaultLimiter } = require("./middleware/rateLimit");
+const helmet = require("helmet");
 
 //middleware
 const morgan = require("morgan");
 const app = express();
+
+// Secure your Express apps by setting various HTTP headers
+app.use(helmet()); 
 
 // Parse trusted origins from environment variable
 const originsString = process.env.TRUSTED_ORIGINS;
