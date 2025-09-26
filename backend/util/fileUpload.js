@@ -28,7 +28,14 @@ function fileFilter(req, file, cb) {
   }
 }
 
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+// Define upload with size limits
+const upload = multer({ 
+  storage: storage, 
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024  // 5 MB file size limit
+  }
+});
 
 // File Size Formatter
 const fileSizeFormatter = (bytes, decimal) => {
