@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const Ticket = require("../models/ticketModel");
 const axios = require("axios");
 const sendEmail = require("../util/sendEmail");
+const { cleanText, cleanQrSrc } = require("../util/sanitize");
 
 const addTicket = asyncHandler(async (req, res) => {
   const id = req.person._id;
@@ -11,10 +12,11 @@ const addTicket = asyncHandler(async (req, res) => {
   const { station, total, seatCount, roadRouteId } = req.body;
 
   // Sanitize inputs
-  const sanitizedStation = sanitizeHtml(station);
-  const sanitizedTotal = sanitizeHtml(total);
-  const sanitizedSeatCount = sanitizeHtml(seatCount);
-  const sanitizedRoadRouteId = sanitizeHtml(roadRouteId);
+  const safeStation   = cleanText(station);
+  const safeTotal     = cleanText(total);
+  const safeSeatCount = cleanText(seatCount);
+  const safeRouteId   = cleanText(roadRouteId);
+  const safeName      = cleanText(name);
 
   //get the last ticketId
   const lastTicket = await Ticket.find().sort({ ticketId: -1 }).limit(1);
@@ -38,10 +40,10 @@ const addTicket = asyncHandler(async (req, res) => {
     qrCategory: "url",
     text: `
       ticketId -: ${ticketId}
-      station -: ${sanitizedStation}
-      total -: ${sanitizedTotal}
-      seatCount -: ${sanitizedSeatCount}
-      roadRouteId -: ${sanitizedRoadRouteId}
+      station -: ${safeStation}
+      total -: ${safeTotal}
+      seatCount -: ${safeSeatCount}
+      roadRouteId -: ${safeRouteId}
     `,
   };
 
@@ -62,10 +64,10 @@ const addTicket = asyncHandler(async (req, res) => {
     ticketId,
     userId: id,
     date: Date.now(),
-    station: sanitizedStation,
-    total: sanitizedTotal,
-    seatCount: sanitizedSeatCount,
-    roadRouteId: sanitizedRoadRouteId,
+    station: safeStation,
+    total: safeTotal,
+    seatCount: safeSeatCount,
+    roadRouteId: safeRouteId,
     qrCode,
   });
 
@@ -74,10 +76,11 @@ const addTicket = asyncHandler(async (req, res) => {
 
     //
     const message = `
+      <h2>Hello ${safeName}</h2>
       <h2>${sanitizeHtml(`Hello ${name}`)}</h2>
       <p>You have purchased a QR code from ICI</p>
       <p>Ticket is only valid for 2 days</p>
-      <img src=${sanitizeHtml(qrCode)} width="300" height="300"/>
+      <img src="${cleanQrSrc(qrCode)}" width="300" height="300" alt="QR Code"/>
       <p>Regards, ICI</p>
     
     `;
