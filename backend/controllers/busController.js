@@ -1,7 +1,8 @@
 const Bus = require("../models/busModel");
 const asyncHandler = require("express-async-handler");
 const cloudinary = require("cloudinary").v2;
-const fs = require("fs");
+const path = require("path");
+const fs = require("fs").promises;
 const { fileSizeFormatter } = require("../util/fileUpload");
 const { enforceGate } = require("../util/rateGate");
 const rateLimit = require("express-rate-limit");
@@ -48,7 +49,17 @@ const createBusImpl = asyncHandler(async (req, res) => {
     !owner
   ) {
     if (req.file) {
-      fs.unlinkSync(req.file.path);
+      try {
+        const uploadsDir = path.resolve(__dirname, "../uploads");
+        const filePath = path.resolve(uploadsDir, path.basename(req.file.path));
+        if (filePath.startsWith(uploadsDir)) {
+          await fs.unlink(filePath);
+        } else {
+          throw new Error("Invalid file path");
+        }
+      } catch (error) {
+        console.error("Error deleting file:", error);
+      }
     }
     res.status(400);
     throw new Error("Please fill all the fields");
@@ -65,21 +76,29 @@ const createBusImpl = asyncHandler(async (req, res) => {
         folder: "KTS/buses",
         resource_type: "image",
       });
+
+      fileData = {
+        fileName: req.file.originalname,
+        filePath: uploadedFile.secure_url,
+        fileType: req.file.mimetype,
+        fileSize: fileSizeFormatter(req.file.size, 2),
+        fileID: uploadedFile.public_id,
+      };
+
+      //delete local file safely
+      const uploadsDir = path.resolve(__dirname, "../uploads");
+      const filePath = path.resolve(uploadsDir, path.basename(req.file.path));
+      if (filePath.startsWith(uploadsDir)) {
+        await fs.unlink(filePath);
+      } else {
+        throw new Error("Invalid file path");
+      }
+
     } catch (err) {
       res.status(500);
       throw new Error("Image could not be uploaded");
     }
 
-    fileData = {
-      fileName: req.file.originalname,
-      filePath: uploadedFile.secure_url,
-      fileType: req.file.mimetype,
-      fileSize: fileSizeFormatter(req.file.size, 2),
-      fileID: uploadedFile.public_id,
-    };
-
-    //delete file from uploads folder
-    fs.unlinkSync(req.file.path);
   }
 
   try {
