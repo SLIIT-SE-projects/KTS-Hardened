@@ -397,10 +397,15 @@ const googleAuthValidate=asyncHandler(async(req,res)=>{
     const jwtToken = generateToken(user._id);
     const redirectBase = `${process.env.FRONTEND_URL}/login`;
     const query = `?token=${encodeURIComponent(jwtToken)}`;
-    return res.redirect(redirectBase + query);
+    return res.redirect(
+      safeFrontendUrl('/login', { token: encodeURIComponent(jwtToken) })
+    );
 
   } catch(err) {
-    res.redirect(`${process.env.FRONTEND_URL}/login?error=`+err.message);
+    console.error('Google auth failed:', err);     // log server-side
+    return res.redirect(
+      safeFrontendUrl('/login', { error: 'oauth_failed' })  // fixed code, no raw message
+    );
   }
 })
 
